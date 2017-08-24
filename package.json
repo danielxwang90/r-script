@@ -13,6 +13,9 @@
   "author": {
     "name": "Josh Katz"
   },
+  "contributor": [{
+    "name": "Daniel Wang"
+  }],
   "main": "index.js",
   "repository": "joshkatz/r-script",
   "dependencies": {
