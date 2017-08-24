@@ -3,7 +3,7 @@ var _ = require("underscore"),
 
 function init(path) {
   var obj = new R(path);
-  return _.bindAll(obj, "data", "call", "callSync", "callDetached");
+  return _.bindAll(obj, "data", "call", "callSync");
 }
 
 function R(path) {
@@ -24,41 +24,36 @@ R.prototype.data = function() {
   return this;
 };
 
-R.prototype.callDetached = function(_opts, _callback) {
-  var callback = _callback || _opts;
-  var opts = _.isFunction(_opts) ? {} : _opts;
-  this.options.env.input = JSON.stringify([this.d, this.path, opts]);
-  this.options.detached = true;
-  this.options.stdio = 'ignore';
-
-  var child = child_process.spawn("Rscript", this.args, this.options);
-  pid = child.pid;
-  child.unref();
-  console.log("R Child-process pid: " + child.pid);
-  var body  = { out: "", err: "", timeout: false};
-
-  return pid;
-};
-
-
 R.prototype.call = function(_opts, _callback) {
   var callback = _callback || _opts;
   var opts = _.isFunction(_opts) ? {} : _opts;
   this.options.env.input = JSON.stringify([this.d, this.path, opts]);
-
+  //this.options.detached = true;
+  //this.options.stdio = 'ignore';
   var child = child_process.spawn("Rscript", this.args, this.options);
   console.log("R Child-process pid: " + child.pid);
   var body  = { out: "", err: "", timeout: false};
-  if (_opts.timeout) {
-   setTimeout(function(){
-     child.stdin.pause(); // Required to make sure KILL works
-     child.kill();
-     body.timeout = true;
-   }, _opts.timeout);
-  }
+  // if (_opts.timeout) {
+  //  setTimeout(function(){
+  //    child.stdin.pause(); // Required to make sure KILL works
+  //    child.kill();
+  //    body.timeout = true;
+  //  }, _opts.timeout);
+  //}
+  // child.stderr.on("data", function(d){
+  //   body.err += d;
+  // });
   child.stdout.on("data", function(d) {
     body.out += d;
   });
+  // child.stderr.on("end", function(){
+  //   // NOTE: Warning or Info messages get caught in stderr!
+  //   if (body.err) {
+  //     body.err = body.err.toString(); 
+  //     if (body.err.indexOf('Error ') != -1) callback(new Error(body.err));
+  //     else body.err = null; // To let the stdout be sent to callback.
+  //   }
+  // });
   child.stdout.on("end", function() {
     if (body.timeout) callback(new Error('Too long run... terminated'));
     if (!body.err) callback(null, JSON.parse(body.out));
@@ -66,28 +61,12 @@ R.prototype.call = function(_opts, _callback) {
   return child.pid;
 };
 
-R.prototype.callDetached = function(_opts, _callback) {
-  var callback = _callback || _opts;
-  var opts = _.isFunction(_opts) ? {} : _opts;
-  this.options.env.input = JSON.stringify([this.d, this.path, opts]);
-  this.options.detached = true;
-  this.options.stdio = 'ignore';
-
-  var child = child_process.spawn("Rscript", this.args, this.options);
-  pid = child.pid;
-  child.unref();
-  console.log("R Child-process pid: " + child.pid);
-  var body  = { out: "", err: "", timeout: false};
-  
-  return pid;
-};
-
 R.prototype.callSync = function(_opts) {
   var opts = _opts || {};
   this.options.env.input = JSON.stringify([this.d, this.path, opts]);
   var child = child_process.spawnSync("Rscript", this.args, this.options);
   console.log("Sync R child-process pid: " + child.pid);
-
+  // if (child.stderr) throw child.stderr;
   return(JSON.parse(child.stdout));
 };
 
